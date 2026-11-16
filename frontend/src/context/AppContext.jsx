@@ -72,14 +72,20 @@ export const AppProvider = ({ children }) => {
       }));
     };
 
+    const handleDeviceUpdate = (evt) => {
+      refreshStats();
+    };
+
     socket.on('telemetry:data', handleTelemetry);
     socket.on('alert:trigger', handleAlert);
     socket.on('rule:node_executed', handleNodeExecuted);
+    socket.on('device:update', handleDeviceUpdate);
 
     return () => {
       socket.off('telemetry:data', handleTelemetry);
       socket.off('alert:trigger', handleAlert);
       socket.off('rule:node_executed', handleNodeExecuted);
+      socket.off('device:update', handleDeviceUpdate);
     };
   }, []);
 

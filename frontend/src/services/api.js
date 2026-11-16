@@ -34,7 +34,10 @@ export const api = {
     return request(`/telemetry/aggregations?${query}`);
   },
   ingestSingle: (data) => request('/telemetry', { method: 'POST', body: JSON.stringify(data) }),
-  ingestBatch: (records) => request('/telemetry/batch', { method: 'POST', body: JSON.stringify({ records }) }),
+  ingestBatch: (records) => {
+    const payload = Array.isArray(records) ? { records } : records;
+    return request('/telemetry/batch', { method: 'POST', body: JSON.stringify(payload) });
+  },
 
   // Rules
   getRules: () => request('/rules'),
@@ -46,7 +49,10 @@ export const api = {
   validateGraph: (graph) => request('/rules/validate', { method: 'POST', body: JSON.stringify({ graph }) }),
 
   // Devices
-  getDevices: () => request('/devices'),
+  getDevices: (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return request(query ? `/devices?${query}` : '/devices');
+  },
   getDeviceById: (deviceId) => request(`/devices/${deviceId}`),
   createDevice: (data) => request('/devices', { method: 'POST', body: JSON.stringify(data) }),
   updateDevice: (deviceId, data) => request(`/devices/${deviceId}`, { method: 'PUT', body: JSON.stringify(data) }),
@@ -65,8 +71,8 @@ export const api = {
   getSimulatorStatus: () => request('/simulator/status'),
   startSimulator: (interval) => request('/simulator/start', { method: 'POST', body: JSON.stringify({ interval }) }),
   stopSimulator: () => request('/simulator/stop', { method: 'POST' }),
-  triggerSpike: (deviceId, temperature) => request('/simulator/spike', {
+  triggerSpike: (deviceId, temperature, humidity) => request('/simulator/spike', {
     method: 'POST',
-    body: JSON.stringify({ deviceId, temperature })
+    body: JSON.stringify({ deviceId, temperature, humidity })
   })
 };
