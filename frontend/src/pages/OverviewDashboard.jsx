@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Activity, 
   Cpu, 
@@ -23,8 +23,31 @@ import {
 import { useApp } from '../context/AppContext';
 import { api } from '../services/api';
 
+const defaultDeviceList = [
+  { deviceId: 'TURBINE-001', name: 'Main Generator Turbine 1', status: 'online' },
+  { deviceId: 'TURBINE-002', name: 'Auxiliary Turbine 2', status: 'online' },
+  { deviceId: 'TEMP-SENSOR-01', name: 'Boiler Chamber Temp Monitor', status: 'online' },
+  { deviceId: 'HVAC-UNIT-04', name: 'Cleanroom HVAC System', status: 'offline' },
+  { deviceId: 'PRESSURE-PUMP-02', name: 'Hydraulic Pressure Unit', status: 'offline' }
+];
+
 export const OverviewDashboard = () => {
   const { stats, liveTelemetryFeed, liveAlerts, setActiveTab, openRuleInBuilder, showToast, refreshStats } = useApp();
+  const [deviceList, setDeviceList] = useState(defaultDeviceList);
+
+  useEffect(() => {
+    let isMounted = true;
+    api.getDevices()
+      .then(res => {
+        if (isMounted && res && res.success && Array.isArray(res.data) && res.data.length > 0) {
+          setDeviceList(res.data);
+        }
+      })
+      .catch(() => {
+        // Fall back gracefully to realistic demo device data
+      });
+    return () => { isMounted = false; };
+  }, []);
 
   const handleAcknowledge = async (alertId) => {
     try {
@@ -211,45 +234,60 @@ export const OverviewDashboard = () => {
 
       {/* Split Row: Hardware Devices & Recent Alerts */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
-        {/* Device Quick Status */}
+        {/* Device Status Section */}
         <div className="card">
           <div className="card-header">
-            <h3 className="card-title">IoT Hardware Fleet</h3>
+            <div>
+              <h3 className="card-title">Device Status</h3>
+              <p style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
+                Real-time operational status of hardware endpoints
+              </p>
+            </div>
             <button className="btn btn-secondary btn-sm" onClick={() => setActiveTab('devices')}>
-              View All
+              View All ({deviceList.length})
             </button>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {[
-              { id: 'TURBINE-001', name: 'Main Generator Turbine 1', loc: 'Turbine Hall', temp: '74.2°C', status: 'online' },
-              { id: 'TURBINE-002', name: 'Auxiliary Turbine 2', loc: 'Sector 2', temp: '68.5°C', status: 'online' },
-              { id: 'TEMP-SENSOR-01', name: 'Boiler Chamber Temp Monitor', loc: 'Boiler Room', temp: '55.0°C', status: 'online' },
-              { id: 'HVAC-UNIT-04', name: 'Cleanroom HVAC System', loc: 'Cleanroom 302', temp: '22.1°C', status: 'online' }
-            ].map(dev => (
-              <div 
-                key={dev.id} 
-                style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'space-between',
-                  padding: '12px 14px',
-                  background: '#f8fafc',
-                  borderRadius: 10,
-                  border: '1px solid #e2e8f0'
-                }}
-              >
-                <div>
-                  <div style={{ fontWeight: 600, fontSize: 13, color: '#0f172a' }}>{dev.name}</div>
-                  <div style={{ fontSize: 11, color: '#64748b' }}>{dev.id} • {dev.loc}</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxHeight: 330, overflowY: 'auto' }}>
+            {deviceList.map(dev => {
+              const isOnline = dev.status === 'online';
+              return (
+                <div 
+                  key={dev.deviceId || dev.id} 
+                  style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'space-between',
+                    padding: '12px 14px',
+                    background: '#f8fafc',
+                    borderRadius: 10,
+                    border: '1px solid #e2e8f0',
+                    gap: 12
+                  }}
+                >
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{ fontWeight: 600, fontSize: 13, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {dev.name}
+                    </div>
+                    <div style={{ fontSize: 11, color: '#64748b', fontFamily: 'var(--font-mono)', marginTop: 2 }}>
+                      {dev.deviceId || dev.id}
+                    </div>
+                  </div>
+                  <div style={{ flexShrink: 0 }}>
+                    {isOnline ? (
+                      <span className="device-status-badge online">
+                        <span className="status-dot-green"></span>
+                        Online
+                      </span>
+                    ) : (
+                      <span className="device-status-badge offline">
+                        <span className="status-dot-red"></span>
+                        Offline
+                      </span>
+                    )}
+                  </div>
                 </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontWeight: 700, fontSize: 14, color: '#4f46e5' }}>{dev.temp}</div>
-                  <span className="badge badge-success" style={{ fontSize: 10, padding: '2px 6px' }}>
-                    ● {dev.status}
-                  </span>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
