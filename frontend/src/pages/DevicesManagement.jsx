@@ -192,10 +192,10 @@ export const DevicesManagement = () => {
   };
 
   const filtered = devices.filter(d => {
-    const matchesSearch = !search.trim() || (
-      d.deviceId.toLowerCase().includes(search.toLowerCase()) ||
-      d.name.toLowerCase().includes(search.toLowerCase()) ||
-      d.location.toLowerCase().includes(search.toLowerCase())
+    const query = search.trim().toLowerCase();
+    const matchesSearch = !query || (
+      (d.name && d.name.toLowerCase().includes(query)) ||
+      (d.deviceId && d.deviceId.toLowerCase().includes(query))
     );
     const matchesStatus = statusFilter === 'all' || d.status === statusFilter;
     const matchesType = typeFilter === 'all' || d.type === typeFilter;
@@ -224,14 +224,51 @@ export const DevicesManagement = () => {
 
       {/* Search and Filters Bar */}
       <div className="card" style={{ padding: '14px 18px', marginBottom: 20, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 14 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 2, minWidth: 240 }}>
-          <Search size={18} color="#94a3b8" />
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          flex: 2,
+          minWidth: 260,
+          background: '#f8fafc',
+          border: '1px solid #e2e8f0',
+          borderRadius: 8,
+          padding: '7px 12px',
+          boxSizing: 'border-box'
+        }}>
+          <Search size={18} color="#94a3b8" style={{ flexShrink: 0 }} />
           <input
-            style={{ border: 'none', outline: 'none', width: '100%', fontSize: 14, background: 'transparent' }}
-            placeholder="Search by device ID, friendly name, location..."
+            style={{ border: 'none', outline: 'none', width: '100%', fontSize: 14, background: 'transparent', color: '#1e293b' }}
+            placeholder="Search by Device Name or Device ID..."
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
+          {search && (
+            <button
+              type="button"
+              onClick={() => setSearch('')}
+              title="Clear search"
+              style={{
+                background: '#e2e8f0',
+                border: 'none',
+                borderRadius: '50%',
+                width: 20,
+                height: 20,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                padding: 0,
+                color: '#64748b',
+                flexShrink: 0,
+                transition: 'background 0.15s ease, color 0.15s ease'
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = '#cbd5e1'; e.currentTarget.style.color = '#1e293b'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = '#e2e8f0'; e.currentTarget.style.color = '#64748b'; }}
+            >
+              <X size={12} />
+            </button>
+          )}
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 160 }}>
@@ -357,8 +394,41 @@ export const DevicesManagement = () => {
               ))
             ) : (
               <tr>
-                <td colSpan="8" style={{ textAlign: 'center', padding: '36px 0', color: '#64748b' }}>
-                  No devices found matching your search and filter criteria.
+                <td colSpan="8" style={{ textAlign: 'center', padding: '48px 16px' }}>
+                  <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', maxWidth: 400, margin: '0 auto' }}>
+                    <div style={{
+                      width: 52,
+                      height: 52,
+                      borderRadius: '50%',
+                      background: '#f1f5f9',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      marginBottom: 16,
+                      color: '#64748b'
+                    }}>
+                      <Search size={24} />
+                    </div>
+                    <h4 style={{ fontSize: 16, fontWeight: 600, color: '#1e293b', margin: '0 0 6px 0' }}>
+                      No devices found
+                    </h4>
+                    <p style={{ fontSize: 13, color: '#64748b', margin: '0 0 16px 0', lineHeight: 1.5 }}>
+                      {search.trim()
+                        ? <>No devices match <strong style={{ color: '#0f172a' }}>"{search}"</strong>. Try checking for typos or searching by a different name or device ID.</>
+                        : 'No devices found matching your current filter criteria.'}
+                    </p>
+                    {search.trim() && (
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-sm"
+                        onClick={() => setSearch('')}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                      >
+                        <X size={14} />
+                        Clear Search
+                      </button>
+                    )}
+                  </div>
                 </td>
               </tr>
             )}
