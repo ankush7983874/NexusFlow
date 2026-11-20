@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Plus, 
   Cpu, 
@@ -11,6 +11,7 @@ import {
   Save, 
   Filter, 
   RefreshCw,
+  RotateCcw,
   CheckCircle2,
   AlertCircle
 } from 'lucide-react';
@@ -58,14 +59,38 @@ export const DevicesManagement = () => {
     samplingRate: 1000
   });
 
+  const formatTypeLabel = (type) => {
+    if (!type) return '';
+    const map = {
+      turbine: 'Turbines',
+      temperature: 'Temperature Sensors',
+      humidity: 'Humidity Sensors',
+      hvac: 'HVAC Systems',
+      multisensor: 'Multi-Sensors',
+      generator: 'Generators'
+    };
+    return map[type.toLowerCase()] || (type.charAt(0).toUpperCase() + type.slice(1));
+  };
+
+  // Derive unique device types dynamically from existing device records
+  const availableTypes = useMemo(() => {
+    const typesSet = new Set();
+    devices.forEach(d => {
+      if (d.type && typeof d.type === 'string' && d.type.trim()) {
+        typesSet.add(d.type.trim().toLowerCase());
+      }
+    });
+    // Fallback known types if no devices exist yet
+    if (typesSet.size === 0) {
+      ['turbine', 'temperature', 'humidity', 'hvac', 'multisensor', 'generator'].forEach(t => typesSet.add(t));
+    }
+    return Array.from(typesSet).sort();
+  }, [devices]);
+
   const fetchDevices = async () => {
     setIsLoading(true);
     try {
-      const res = await api.getDevices({
-        search,
-        status: statusFilter,
-        type: typeFilter
-      });
+      const res = await api.getDevices();
       if (res.success && Array.isArray(res.data)) {
         setDevices(res.data);
       } else {
@@ -80,7 +105,7 @@ export const DevicesManagement = () => {
 
   useEffect(() => {
     fetchDevices();
-  }, [statusFilter, typeFilter]);
+  }, []);
 
   const validateForm = (data, isEdit = false) => {
     const errors = {};
@@ -198,7 +223,7 @@ export const DevicesManagement = () => {
       (d.deviceId && d.deviceId.toLowerCase().includes(query))
     );
     const matchesStatus = statusFilter === 'all' || d.status === statusFilter;
-    const matchesType = typeFilter === 'all' || d.type === typeFilter;
+    const matchesType = typeFilter === 'all' || (d.type && d.type.toLowerCase() === typeFilter.toLowerCase());
     return matchesSearch && matchesStatus && matchesType;
   });
 
@@ -286,22 +311,41 @@ export const DevicesManagement = () => {
           </select>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 160 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 200 }}>
           <span style={{ fontSize: 12, color: '#64748b', fontWeight: 600 }}>Type:</span>
           <select
             className="form-select"
-            style={{ fontSize: 13, padding: '6px 10px' }}
+            style={{ fontSize: 13, padding: '6px 10px', flex: 1 }}
             value={typeFilter}
             onChange={e => setTypeFilter(e.target.value)}
+            title="Filter devices by hardware type"
           >
-            <option value="all">All Categories</option>
-            <option value="turbine">Turbines</option>
-            <option value="temperature">Temperature Sensors</option>
-            <option value="humidity">Humidity Sensors</option>
-            <option value="hvac">HVAC Systems</option>
-            <option value="multisensor">Multi-Sensors</option>
-            <option value="generator">Generators</option>
+            <option value="all">All Devices / Reset</option>
+            {availableTypes.map(type => (
+              <option key={type} value={type}>
+                {formatTypeLabel(type)}
+              </option>
+            ))}
           </select>
+          {typeFilter !== 'all' && (
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={() => setTypeFilter('all')}
+              title="Reset type filter to All Devices"
+              style={{
+                padding: '5px 8px',
+                fontSize: 12,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4,
+                flexShrink: 0
+              }}
+            >
+              <RotateCcw size={12} />
+              Reset
+            </button>
+          )}
         </div>
 
         <div style={{ fontSize: 12, color: '#64748b', fontWeight: 600 }}>
@@ -413,21 +457,38 @@ export const DevicesManagement = () => {
                       No devices found
                     </h4>
                     <p style={{ fontSize: 13, color: '#64748b', margin: '0 0 16px 0', lineHeight: 1.5 }}>
-                      {search.trim()
+                      {search.trim() && typeFilter !== 'all'
+                        ? <>No devices of type <strong style={{ color: '#0f172a' }}>"{formatTypeLabel(typeFilter)}"</strong> match <strong style={{ color: '#0f172a' }}>"{search}"</strong>.</>
+                        : search.trim()
                         ? <>No devices match <strong style={{ color: '#0f172a' }}>"{search}"</strong>. Try checking for typos or searching by a different name or device ID.</>
+                        : typeFilter !== 'all'
+                        ? <>No devices found of type <strong style={{ color: '#0f172a' }}>"{formatTypeLabel(typeFilter)}"</strong>.</>
                         : 'No devices found matching your current filter criteria.'}
                     </p>
-                    {search.trim() && (
-                      <button
-                        type="button"
-                        className="btn btn-secondary btn-sm"
-                        onClick={() => setSearch('')}
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
-                      >
-                        <X size={14} />
-                        Clear Search
-                      </button>
-                    )}
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
+                      {search.trim() && (
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-sm"
+                          onClick={() => setSearch('')}
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                        >
+                          <X size={14} />
+                          Clear Search
+                        </button>
+                      )}
+                      {typeFilter !== 'all' && (
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-sm"
+                          onClick={() => setTypeFilter('all')}
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                        >
+                          <RotateCcw size={14} />
+                          Reset Type Filter
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </td>
               </tr>

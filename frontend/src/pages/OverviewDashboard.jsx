@@ -8,7 +8,8 @@ import {
   Flame, 
   TrendingUp, 
   CheckCircle2,
-  Clock
+  Clock,
+  WifiOff
 } from 'lucide-react';
 import { 
   AreaChart, 
@@ -47,7 +48,12 @@ export const OverviewDashboard = () => {
         // Fall back gracefully to realistic demo device data
       });
     return () => { isMounted = false; };
-  }, []);
+  }, [stats]);
+
+  // Calculate dynamic device metrics directly from actual existing device data
+  const totalDevices = deviceList.length;
+  const onlineDevices = deviceList.filter(d => d.status === 'online').length;
+  const offlineDevices = deviceList.filter(d => d.status !== 'online').length;
 
   const handleAcknowledge = async (alertId) => {
     try {
@@ -107,8 +113,48 @@ export const OverviewDashboard = () => {
         </button>
       </div>
 
-      {/* 4 Metric Stats Cards */}
+      {/* Summary Metrics Cards */}
       <div className="metrics-grid">
+        <div className="metric-card">
+          <div>
+            <div className="metric-label">Total Devices</div>
+            <div className="metric-value">{totalDevices}</div>
+            <div style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>
+              Active hardware fleet
+            </div>
+          </div>
+          <div className="metric-icon-box" style={{ background: '#e0e7ff', color: '#4338ca' }}>
+            <Cpu size={24} />
+          </div>
+        </div>
+
+        <div className="metric-card">
+          <div>
+            <div className="metric-label">Online Devices</div>
+            <div className="metric-value" style={{ color: '#15803d' }}>{onlineDevices}</div>
+            <div style={{ fontSize: 12, color: '#15803d', display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
+              <span className="status-dot-green"></span> Transmitting telemetry
+            </div>
+          </div>
+          <div className="metric-icon-box" style={{ background: '#dcfce7', color: '#15803d' }}>
+            <CheckCircle2 size={24} />
+          </div>
+        </div>
+
+        <div className="metric-card">
+          <div>
+            <div className="metric-label">Offline Devices</div>
+            <div className="metric-value" style={{ color: offlineDevices > 0 ? '#b91c1c' : '#0f172a' }}>{offlineDevices}</div>
+            <div style={{ fontSize: 12, color: offlineDevices > 0 ? '#b91c1c' : '#64748b', display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
+              {offlineDevices > 0 && <span className="status-dot-red"></span>}
+              {offlineDevices > 0 ? 'Requires attention' : 'All devices online'}
+            </div>
+          </div>
+          <div className="metric-icon-box" style={{ background: '#fee2e2', color: '#b91c1c' }}>
+            <WifiOff size={24} />
+          </div>
+        </div>
+
         <div className="metric-card">
           <div>
             <div className="metric-label">Total Time-Series Telemetry</div>
@@ -119,21 +165,6 @@ export const OverviewDashboard = () => {
           </div>
           <div className="metric-icon-box" style={{ background: '#e0e7ff', color: '#4338ca' }}>
             <Activity size={24} />
-          </div>
-        </div>
-
-        <div className="metric-card">
-          <div>
-            <div className="metric-label">Hardware Devices Online</div>
-            <div className="metric-value">
-              {stats.onlineDevices || 0} <span style={{ fontSize: 16, color: '#64748b' }}>/ {stats.totalDevices || 0}</span>
-            </div>
-            <div style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>
-              All zones nominal
-            </div>
-          </div>
-          <div className="metric-icon-box" style={{ background: '#dcfce7', color: '#15803d' }}>
-            <Cpu size={24} />
           </div>
         </div>
 
@@ -158,7 +189,7 @@ export const OverviewDashboard = () => {
               Mock SMS & Webhooks
             </div>
           </div>
-          <div className="metric-icon-box" style={{ background: '#fee2e2', color: '#b91c1c' }}>
+          <div className="metric-icon-box" style={{ background: '#fef3c7', color: '#b45309' }}>
             <BellRing size={24} />
           </div>
         </div>
