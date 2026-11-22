@@ -56,3 +56,8 @@ export const broadcastNodeExecution = (eventData) => {
   if (!ioInstance) return;
   ioInstance.emit('rule:node_executed', eventData);
 };
+
+export const broadcastDeviceUpdate = (deviceData) => {
+  if (!ioInstance) return;
+  ioInstance.emit('device:update', deviceData);
+};

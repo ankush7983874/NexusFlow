@@ -6,22 +6,38 @@ import { Rule } from '../models/rule.model.js';
 import { Alert } from '../models/alert.model.js';
 
 export const singleTelemetrySchema = z.object({
-  deviceId: z.string().min(1, 'deviceId is required'),
-  sensorType: z.string().optional(),
-  location: z.string().optional(),
-  unit: z.string().optional(),
-  temperature: z.number().optional(),
-  humidity: z.number().optional(),
-  vibration: z.number().optional(),
-  pressure: z.number().optional(),
-  voltage: z.number().optional(),
-  status: z.string().optional(),
-  timestamp: z.string().or(z.date()).optional()
+  deviceId: z
+    .string({ required_error: 'deviceId is required' })
+    .trim()
+    .min(1, 'deviceId cannot be empty'),
+  sensorType: z.string().trim().optional(),
+  location: z.string().trim().optional(),
+  unit: z.string().trim().optional(),
+  temperature: z
+    .number({ invalid_type_error: 'temperature must be a valid number' })
+    .min(-100, 'temperature cannot be less than -100°C')
+    .max(1500, 'temperature cannot exceed 1500°C')
+    .optional(),
+  humidity: z
+    .number({ invalid_type_error: 'humidity must be a valid number' })
+    .min(0, 'humidity cannot be less than 0%')
+    .max(100, 'humidity cannot exceed 100%')
+    .optional(),
+  vibration: z.number({ invalid_type_error: 'vibration must be a number' }).optional(),
+  pressure: z.number({ invalid_type_error: 'pressure must be a number' }).optional(),
+  voltage: z.number({ invalid_type_error: 'voltage must be a number' }).optional(),
+  status: z.string().trim().optional(),
+  timestamp: z.string().or(z.date()).optional(),
+  isSimulated: z.boolean().optional(),
+  metadata: z.record(z.any()).optional()
 });
 
-export const batchTelemetrySchema = z.object({
-  records: z.array(singleTelemetrySchema).min(1, 'records array cannot be empty')
-});
+export const batchTelemetrySchema = z.union([
+  z.object({
+    records: z.array(singleTelemetrySchema).min(1, 'records array cannot be empty')
+  }),
+  z.array(singleTelemetrySchema).min(1, 'telemetry array cannot be empty')
+]);
 
 export class TelemetryController {
   static async ingestSingle(req, res, next) {
@@ -29,7 +45,7 @@ export class TelemetryController {
       const saved = await TelemetryService.ingestSingle(req.body);
       res.status(201).json({
         success: true,
-        message: 'Telemetry ingested successfully',
+        message: 'Telemetry reading ingested successfully',
         data: saved
       });
     } catch (error) {
@@ -39,11 +55,11 @@ export class TelemetryController {
 
   static async ingestBatch(req, res, next) {
     try {
-      const records = req.body.records || req.body;
-      const result = await TelemetryService.ingestBatch(records);
+      const rawRecords = Array.isArray(req.body) ? req.body : req.body.records;
+      const result = await TelemetryService.ingestBatch(rawRecords);
       res.status(201).json({
         success: true,
-        message: `Successfully ingested ${result.insertedCount} telemetry data points`,
+        message: `Successfully ingested batch of ${result.insertedCount} telemetry data points`,
         data: result
       });
     } catch (error) {
@@ -89,11 +105,12 @@ export class TelemetryController {
 
   static async getOverviewStats(req, res, next) {
     try {
-      const [totalTelemetry, totalDevices, activeRules, recentAlerts] = await Promise.all([
+      const [totalTelemetry, totalDevices, activeRules, recentAlerts, totalAlerts] = await Promise.all([
         Telemetry.countDocuments(),
         Device.countDocuments(),
         Rule.countDocuments({ active: true }),
-        Alert.find().sort({ createdAt: -1 }).limit(10).lean()
+        Alert.find().sort({ createdAt: -1 }).limit(10).lean(),
+        Alert.countDocuments()
       ]);
 
       const onlineDevices = await Device.countDocuments({ status: 'online' });
@@ -105,7 +122,8 @@ export class TelemetryController {
           totalDevices,
           onlineDevices,
           activeRules,
-          recentAlerts
+          recentAlerts,
+          totalAlerts
         }
       });
     } catch (error) {

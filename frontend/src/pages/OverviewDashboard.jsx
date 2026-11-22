@@ -9,7 +9,9 @@ import {
   TrendingUp, 
   CheckCircle2,
   Clock,
-  WifiOff
+  WifiOff,
+  Search,
+  X
 } from 'lucide-react';
 import { 
   AreaChart, 
@@ -35,6 +37,8 @@ const defaultDeviceList = [
 export const OverviewDashboard = () => {
   const { stats, liveTelemetryFeed, liveAlerts, setActiveTab, openRuleInBuilder, showToast, refreshStats } = useApp();
   const [deviceList, setDeviceList] = useState(defaultDeviceList);
+  const [deviceSearch, setDeviceSearch] = useState('');
+  const [totalAlertsCount, setTotalAlertsCount] = useState(0);
 
   useEffect(() => {
     let isMounted = true;
@@ -50,10 +54,38 @@ export const OverviewDashboard = () => {
     return () => { isMounted = false; };
   }, [stats]);
 
+  // Fetch alert stats for dynamic total alert count
+  useEffect(() => {
+    let isMounted = true;
+    api.getAlertStats()
+      .then(res => {
+        if (isMounted && res && res.success && res.data) {
+          setTotalAlertsCount(res.data.total ?? 0);
+        }
+      })
+      .catch(() => {
+        // Fallback to recent alerts length
+      });
+    return () => { isMounted = false; };
+  }, [liveAlerts, stats]);
+
   // Calculate dynamic device metrics directly from actual existing device data
   const totalDevices = deviceList.length;
   const onlineDevices = deviceList.filter(d => d.status === 'online').length;
   const offlineDevices = deviceList.filter(d => d.status !== 'online').length;
+
+  const displayAlerts = liveAlerts.length > 0 ? liveAlerts : stats.recentAlerts || [];
+  const totalAlerts = stats.totalAlerts ?? (totalAlertsCount || displayAlerts.length);
+
+  // Filter dashboard devices by name or deviceId
+  const filteredDashboardDevices = deviceList.filter(d => {
+    const query = deviceSearch.trim().toLowerCase();
+    if (!query) return true;
+    return (
+      (d.name && d.name.toLowerCase().includes(query)) ||
+      (d.deviceId && d.deviceId.toLowerCase().includes(query))
+    );
+  });
 
   const handleAcknowledge = async (alertId) => {
     try {
@@ -73,8 +105,6 @@ export const OverviewDashboard = () => {
     vibration: item.vibration ? Number((item.vibration * 10).toFixed(1)) : 25,
     deviceId: item.metadata?.deviceId || item.deviceId
   }));
-
-  const displayAlerts = liveAlerts.length > 0 ? liveAlerts : stats.recentAlerts || [];
 
   return (
     <div className="page-wrapper">
@@ -113,7 +143,7 @@ export const OverviewDashboard = () => {
         </button>
       </div>
 
-      {/* Summary Metrics Cards */}
+      {/* 4 Dashboard Summary Cards */}
       <div className="metrics-grid">
         <div className="metric-card">
           <div>
@@ -157,39 +187,13 @@ export const OverviewDashboard = () => {
 
         <div className="metric-card">
           <div>
-            <div className="metric-label">Total Time-Series Telemetry</div>
-            <div className="metric-value">{(stats.totalTelemetry || 0).toLocaleString()}</div>
-            <div style={{ fontSize: 12, color: '#059669', display: 'flex', alignItems: 'center', gap: 4, marginTop: 4 }}>
-              <TrendingUp size={14} /> Append-only storage active
+            <div className="metric-label">Total Alerts</div>
+            <div className="metric-value" style={{ color: totalAlerts > 0 ? '#dc2626' : '#0f172a' }}>{totalAlerts}</div>
+            <div style={{ fontSize: 12, color: totalAlerts > 0 ? '#dc2626' : '#64748b', marginTop: 4 }}>
+              Dispatched & logged events
             </div>
           </div>
-          <div className="metric-icon-box" style={{ background: '#e0e7ff', color: '#4338ca' }}>
-            <Activity size={24} />
-          </div>
-        </div>
-
-        <div className="metric-card">
-          <div>
-            <div className="metric-label">Active RxJS Stream Rules</div>
-            <div className="metric-value">{stats.activeRules || 0}</div>
-            <div style={{ fontSize: 12, color: '#4338ca', marginTop: 4 }}>
-              Dynamic reactive pipelines
-            </div>
-          </div>
-          <div className="metric-icon-box" style={{ background: '#f3e8ff', color: '#7e22ce' }}>
-            <Sliders size={24} />
-          </div>
-        </div>
-
-        <div className="metric-card">
-          <div>
-            <div className="metric-label">Alerts Dispatched</div>
-            <div className="metric-value">{displayAlerts.length}</div>
-            <div style={{ fontSize: 12, color: '#dc2626', marginTop: 4 }}>
-              Mock SMS & Webhooks
-            </div>
-          </div>
-          <div className="metric-icon-box" style={{ background: '#fef3c7', color: '#b45309' }}>
+          <div className="metric-icon-box" style={{ background: '#fee2e2', color: '#b91c1c' }}>
             <BellRing size={24} />
           </div>
         </div>
@@ -275,50 +279,128 @@ export const OverviewDashboard = () => {
               </p>
             </div>
             <button className="btn btn-secondary btn-sm" onClick={() => setActiveTab('devices')}>
-              View All ({deviceList.length})
+              View Fleet ({deviceList.length})
             </button>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxHeight: 330, overflowY: 'auto' }}>
-            {deviceList.map(dev => {
-              const isOnline = dev.status === 'online';
-              return (
-                <div 
-                  key={dev.deviceId || dev.id} 
-                  style={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'space-between',
-                    padding: '12px 14px',
-                    background: '#f8fafc',
-                    borderRadius: 10,
-                    border: '1px solid #e2e8f0',
-                    gap: 12
-                  }}
-                >
-                  <div style={{ minWidth: 0, flex: 1 }}>
-                    <div style={{ fontWeight: 600, fontSize: 13, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {dev.name}
+
+          {/* Clean Device Search Input */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            background: '#f8fafc',
+            border: '1px solid #e2e8f0',
+            borderRadius: 8,
+            padding: '7px 12px',
+            marginBottom: 14,
+            boxSizing: 'border-box'
+          }}>
+            <Search size={16} color="#94a3b8" style={{ flexShrink: 0 }} />
+            <input
+              style={{
+                border: 'none',
+                outline: 'none',
+                width: '100%',
+                fontSize: 13,
+                background: 'transparent',
+                color: '#1e293b'
+              }}
+              placeholder="Search devices by name or device ID..."
+              value={deviceSearch}
+              onChange={e => setDeviceSearch(e.target.value)}
+            />
+            {deviceSearch && (
+              <button
+                type="button"
+                onClick={() => setDeviceSearch('')}
+                title="Clear search"
+                style={{
+                  background: '#e2e8f0',
+                  border: 'none',
+                  borderRadius: '50%',
+                  width: 18,
+                  height: 18,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  padding: 0,
+                  color: '#64748b',
+                  flexShrink: 0
+                }}
+              >
+                <X size={10} />
+              </button>
+            )}
+          </div>
+
+          {/* Device Cards List */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxHeight: 280, overflowY: 'auto' }}>
+            {filteredDashboardDevices.length > 0 ? (
+              filteredDashboardDevices.map(dev => {
+                const isOnline = dev.status === 'online';
+                return (
+                  <div 
+                    key={dev.deviceId || dev.id} 
+                    style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'space-between',
+                      padding: '12px 14px',
+                      background: '#f8fafc',
+                      borderRadius: 10,
+                      border: '1px solid #e2e8f0',
+                      gap: 12
+                    }}
+                  >
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div style={{ fontWeight: 600, fontSize: 13, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {dev.name}
+                      </div>
+                      <div style={{ fontSize: 11, color: '#64748b', fontFamily: 'var(--font-mono)', marginTop: 2 }}>
+                        {dev.deviceId || dev.id}
+                      </div>
                     </div>
-                    <div style={{ fontSize: 11, color: '#64748b', fontFamily: 'var(--font-mono)', marginTop: 2 }}>
-                      {dev.deviceId || dev.id}
+                    <div style={{ flexShrink: 0 }}>
+                      {isOnline ? (
+                        <span className="device-status-badge online">
+                          <span className="status-dot-green"></span>
+                          Online
+                        </span>
+                      ) : (
+                        <span className="device-status-badge offline">
+                          <span className="status-dot-red"></span>
+                          Offline
+                        </span>
+                      )}
                     </div>
                   </div>
-                  <div style={{ flexShrink: 0 }}>
-                    {isOnline ? (
-                      <span className="device-status-badge online">
-                        <span className="status-dot-green"></span>
-                        Online
-                      </span>
-                    ) : (
-                      <span className="device-status-badge offline">
-                        <span className="status-dot-red"></span>
-                        Offline
-                      </span>
-                    )}
-                  </div>
+                );
+              })
+            ) : (
+              <div style={{
+                textAlign: 'center',
+                padding: '28px 16px',
+                color: '#64748b',
+                background: '#f8fafc',
+                borderRadius: 10,
+                border: '1px dashed #cbd5e1'
+              }}>
+                <Search size={22} color="#94a3b8" style={{ marginBottom: 6 }} />
+                <div style={{ fontWeight: 600, fontSize: 13, color: '#1e293b' }}>No devices found</div>
+                <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
+                  No device matches "{deviceSearch}"
                 </div>
-              );
-            })}
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => setDeviceSearch('')}
+                  style={{ marginTop: 10, fontSize: 11, padding: '4px 10px' }}
+                >
+                  Clear Search
+                </button>
+              </div>
+            )}
           </div>
         </div>
 

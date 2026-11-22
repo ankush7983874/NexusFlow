@@ -312,6 +312,7 @@ export const DevicesManagement = () => {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 200 }}>
+          <Filter size={15} color="#94a3b8" style={{ flexShrink: 0 }} />
           <span style={{ fontSize: 12, color: '#64748b', fontWeight: 600 }}>Type:</span>
           <select
             className="form-select"
@@ -320,7 +321,7 @@ export const DevicesManagement = () => {
             onChange={e => setTypeFilter(e.target.value)}
             title="Filter devices by hardware type"
           >
-            <option value="all">All Devices / Reset</option>
+            <option value="all">All Devices</option>
             {availableTypes.map(type => (
               <option key={type} value={type}>
                 {formatTypeLabel(type)}

@@ -11,7 +11,8 @@ const TelemetrySchema = new mongoose.Schema(
       deviceId: { type: String, required: true, index: true },
       sensorType: { type: String, default: 'multi-sensor' },
       location: { type: String, default: 'Factory Floor 1' },
-      unit: { type: String, default: 'metric' }
+      unit: { type: String, default: 'metric' },
+      isSimulated: { type: Boolean, default: false }
     },
     temperature: { type: Number },
     humidity: { type: Number },
