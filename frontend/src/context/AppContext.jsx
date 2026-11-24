@@ -7,6 +7,7 @@ const AppContext = createContext();
 export const AppProvider = ({ children }) => {
   const [activeTab, setActiveTab] = useState('overview');
   const [selectedRuleId, setSelectedRuleId] = useState(null);
+  const [selectedDeviceId, setSelectedDeviceId] = useState(null);
   const [stats, setStats] = useState({
     totalTelemetry: 0,
     totalDevices: 0,
@@ -94,6 +95,11 @@ export const AppProvider = ({ children }) => {
     setActiveTab('builder');
   };
 
+  const openDeviceDetails = (deviceId) => {
+    setSelectedDeviceId(deviceId);
+    setActiveTab('devices');
+  };
+
   const toggleSimulator = async () => {
     try {
       if (simulatorRunning) {
@@ -127,6 +133,9 @@ export const AppProvider = ({ children }) => {
         selectedRuleId,
         setSelectedRuleId,
         openRuleInBuilder,
+        selectedDeviceId,
+        setSelectedDeviceId,
+        openDeviceDetails,
         stats,
         refreshStats,
         liveTelemetryFeed,

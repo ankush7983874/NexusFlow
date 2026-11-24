@@ -11,7 +11,8 @@ import {
   Clock,
   WifiOff,
   Search,
-  X
+  X,
+  ChevronRight
 } from 'lucide-react';
 import { 
   AreaChart, 
@@ -35,7 +36,7 @@ const defaultDeviceList = [
 ];
 
 export const OverviewDashboard = () => {
-  const { stats, liveTelemetryFeed, liveAlerts, setActiveTab, openRuleInBuilder, showToast, refreshStats } = useApp();
+  const { stats, liveTelemetryFeed, liveAlerts, setActiveTab, openRuleInBuilder, openDeviceDetails, showToast, refreshStats } = useApp();
   const [deviceList, setDeviceList] = useState(defaultDeviceList);
   const [deviceSearch, setDeviceSearch] = useState('');
   const [totalAlertsCount, setTotalAlertsCount] = useState(0);
@@ -342,6 +343,7 @@ export const OverviewDashboard = () => {
                 return (
                   <div 
                     key={dev.deviceId || dev.id} 
+                    onClick={() => openDeviceDetails(dev.deviceId || dev.id)}
                     style={{ 
                       display: 'flex', 
                       alignItems: 'center', 
@@ -350,8 +352,21 @@ export const OverviewDashboard = () => {
                       background: '#f8fafc',
                       borderRadius: 10,
                       border: '1px solid #e2e8f0',
-                      gap: 12
+                      gap: 12,
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease'
                     }}
+                    onMouseEnter={e => {
+                      e.currentTarget.style.borderColor = '#c7d2fe';
+                      e.currentTarget.style.background = '#ffffff';
+                      e.currentTarget.style.boxShadow = '0 2px 8px rgba(99, 102, 241, 0.08)';
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.borderColor = '#e2e8f0';
+                      e.currentTarget.style.background = '#f8fafc';
+                      e.currentTarget.style.boxShadow = 'none';
+                    }}
+                    title={`Click to view details for ${dev.name}`}
                   >
                     <div style={{ minWidth: 0, flex: 1 }}>
                       <div style={{ fontWeight: 600, fontSize: 13, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -361,7 +376,7 @@ export const OverviewDashboard = () => {
                         {dev.deviceId || dev.id}
                       </div>
                     </div>
-                    <div style={{ flexShrink: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
                       {isOnline ? (
                         <span className="device-status-badge online">
                           <span className="status-dot-green"></span>
@@ -373,6 +388,9 @@ export const OverviewDashboard = () => {
                           Offline
                         </span>
                       )}
+                      <span style={{ fontSize: 11, color: '#4f46e5', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 2 }}>
+                        Details <ChevronRight size={13} />
+                      </span>
                     </div>
                   </div>
                 );

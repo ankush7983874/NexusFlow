@@ -36,12 +36,28 @@ export const Navbar = () => {
 
   return (
     <header className="navbar">
-      <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div 
+          className="brand-icon" 
+          style={{ 
+            width: 36, 
+            height: 36, 
+            borderRadius: 8, 
+            boxShadow: '0 2px 6px rgba(0,0,0,0.18)' 
+          }}
+          title="NexusFlow IoT Engine"
+        >
+          <img 
+            src="/images/nexusflow-logo.png" 
+            alt="NexusFlow Logo" 
+            className="brand-logo-img" 
+          />
+        </div>
         <div>
-          <h2 style={{ fontSize: 18, fontWeight: 700, color: '#0f172a' }}>
+          <h2 style={{ fontSize: 18, fontWeight: 700, color: '#0f172a', margin: 0, lineHeight: 1.2 }}>
             {titles[activeTab] || 'NexusFlow'}
           </h2>
-          <div style={{ fontSize: 12, color: '#64748b' }}>
+          <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
             Infotact Solutions • Industrial IoT Telemetry
           </div>
         </div>

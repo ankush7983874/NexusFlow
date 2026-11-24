@@ -69,14 +69,18 @@ export class TelemetryController {
 
   static async getHistory(req, res, next) {
     try {
-      const { deviceId, sensorType, startDate, endDate, limit, page } = req.query;
+      const deviceId = req.params.deviceId || req.query.deviceId;
+      const { sensorType, startDate, endDate, timeRange, metric, limit, page, sort } = req.query;
       const result = await TelemetryService.queryHistory({
         deviceId,
         sensorType,
         startDate,
         endDate,
+        timeRange,
+        metric,
         limit,
-        page
+        page,
+        sort
       });
       res.status(200).json({
         success: true,

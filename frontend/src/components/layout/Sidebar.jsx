@@ -7,8 +7,7 @@ import {
   Sliders, 
   BellRing, 
   BarChart3, 
-  Settings as SettingsIcon,
-  Radio
+  Settings as SettingsIcon
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
@@ -30,7 +29,11 @@ export const Sidebar = () => {
     <aside className="sidebar">
       <div className="sidebar-header">
         <div className="brand-icon">
-          <Radio size={22} />
+          <img 
+            src="/images/nexusflow-logo.png" 
+            alt="NexusFlow Logo" 
+            className="brand-logo-img" 
+          />
         </div>
         <div>
           <div className="brand-title">NexusFlow</div>

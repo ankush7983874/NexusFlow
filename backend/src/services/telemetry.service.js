@@ -167,7 +167,17 @@ export class TelemetryService {
   /**
    * Query telemetry history with optional filters and time-series aggregation
    */
-  static async queryHistory({ deviceId, sensorType, startDate, endDate, limit = 100, page = 1 }) {
+  static async queryHistory({
+    deviceId,
+    sensorType,
+    startDate,
+    endDate,
+    timeRange,
+    metric,
+    limit = 100,
+    page = 1,
+    sort = 'desc'
+  }) {
     const filter = {};
     if (deviceId && deviceId !== 'all') {
       filter['metadata.deviceId'] = deviceId.toUpperCase();
@@ -175,18 +185,42 @@ export class TelemetryService {
     if (sensorType && sensorType !== 'all') {
       filter['metadata.sensorType'] = sensorType;
     }
-    if (startDate || endDate) {
-      filter.timestamp = {};
-      if (startDate) filter.timestamp.$gte = new Date(startDate);
-      if (endDate) filter.timestamp.$lte = new Date(endDate);
+
+    // Time range filter
+    let start = startDate ? new Date(startDate) : null;
+    let end = endDate ? new Date(endDate) : null;
+
+    if (timeRange) {
+      const now = new Date();
+      if (timeRange === '1h') {
+        start = new Date(now.getTime() - 1 * 60 * 60 * 1000);
+      } else if (timeRange === '24h') {
+        start = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      } else if (timeRange === '7d') {
+        start = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      }
+      end = now;
     }
 
-    const skip = (Number(page) - 1) * Number(limit);
+    if (start || end) {
+      filter.timestamp = {};
+      if (start) filter.timestamp.$gte = start;
+      if (end) filter.timestamp.$lte = end;
+    }
+
+    if (metric && metric !== 'all') {
+      filter[metric] = { $exists: true, $ne: null };
+    }
+
+    const sortOrder = sort === 'asc' ? 1 : -1;
+    const safeLimit = Math.min(Math.max(Number(limit) || 100, 1), 1000);
+    const skip = (Number(page) - 1) * safeLimit;
+
     const [data, totalCount] = await Promise.all([
       Telemetry.find(filter)
-        .sort({ timestamp: -1 })
+        .sort({ timestamp: sortOrder })
         .skip(skip)
-        .limit(Number(limit))
+        .limit(safeLimit)
         .lean(),
       Telemetry.countDocuments(filter)
     ]);
@@ -195,7 +229,7 @@ export class TelemetryService {
       data,
       totalCount,
       page: Number(page),
-      totalPages: Math.ceil(totalCount / limit)
+      totalPages: Math.ceil(totalCount / safeLimit)
     };
   }
 

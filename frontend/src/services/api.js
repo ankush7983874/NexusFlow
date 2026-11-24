@@ -54,6 +54,10 @@ export const api = {
     return request(query ? `/devices?${query}` : '/devices');
   },
   getDeviceById: (deviceId) => request(`/devices/${deviceId}`),
+  getDeviceTelemetryHistory: (deviceId, params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return request(`/devices/${deviceId}/telemetry?${query}`);
+  },
   createDevice: (data) => request('/devices', { method: 'POST', body: JSON.stringify(data) }),
   updateDevice: (deviceId, data) => request(`/devices/${deviceId}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteDevice: (deviceId) => request(`/devices/${deviceId}`, { method: 'DELETE' }),
