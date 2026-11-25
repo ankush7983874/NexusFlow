@@ -17,10 +17,11 @@ export const Navbar = () => {
     toggleSimulator, 
     triggerOverheatSpike,
     refreshStats,
-    liveTelemetryFeed 
+    liveTelemetryFeed,
+    socketStatus
   } = useApp();
 
-  const isConnected = socket.connected;
+  const isConnected = socketStatus === 'connected';
   const latestItem = liveTelemetryFeed[0];
 
   const titles = {

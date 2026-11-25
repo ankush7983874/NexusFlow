@@ -14,18 +14,9 @@ import {
   X,
   ChevronRight
 } from 'lucide-react';
-import { 
-  AreaChart, 
-  Area, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer,
-  Legend 
-} from 'recharts';
 import { useApp } from '../context/AppContext';
 import { api } from '../services/api';
+import { RealtimeTelemetryMonitor } from '../components/telemetry/RealtimeTelemetryMonitor';
 
 const defaultDeviceList = [
   { deviceId: 'TURBINE-001', name: 'Main Generator Turbine 1', status: 'online' },
@@ -97,15 +88,6 @@ export const OverviewDashboard = () => {
       showToast(`Error: ${err.message}`, 'danger');
     }
   };
-
-  // Prepare chart data from live telemetry feed (in chronological order)
-  const chartData = [...liveTelemetryFeed].reverse().map((item, idx) => ({
-    time: item.timestamp ? new Date(item.timestamp).toLocaleTimeString() : `${idx}s`,
-    temperature: item.temperature,
-    humidity: item.humidity,
-    vibration: item.vibration ? Number((item.vibration * 10).toFixed(1)) : 25,
-    deviceId: item.metadata?.deviceId || item.deviceId
-  }));
 
   return (
     <div className="page-wrapper">
@@ -200,73 +182,8 @@ export const OverviewDashboard = () => {
         </div>
       </div>
 
-      {/* Main Realtime Chart Card */}
-      <div className="card" style={{ marginBottom: 24 }}>
-        <div className="card-header">
-          <div>
-            <h3 className="card-title">Live Sensor Telemetry Stream</h3>
-            <p style={{ fontSize: 12, color: '#64748b' }}>
-              Real-time temperature and humidity streaming via WebSockets without page reload
-            </p>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span className="badge badge-success">Live WebSocket Stream</span>
-          </div>
-        </div>
-
-        <div style={{ height: 320, width: '100%' }}>
-          {chartData.length > 0 ? (
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="tempGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.4} />
-                    <stop offset="95%" stopColor="#4f46e5" stopOpacity={0.0} />
-                  </linearGradient>
-                  <linearGradient id="humidityGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#06b6d4" stopOpacity={0.0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="time" tick={{ fontSize: 11, fill: '#64748b' }} stroke="#cbd5e1" />
-                <YAxis tick={{ fontSize: 11, fill: '#64748b' }} stroke="#cbd5e1" />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'white', 
-                    borderRadius: 8, 
-                    border: '1px solid #e2e8f0', 
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)' 
-                  }} 
-                />
-                <Legend wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
-                <Area 
-                  type="monotone" 
-                  dataKey="temperature" 
-                  name="Temperature (°C)" 
-                  stroke="#4f46e5" 
-                  strokeWidth={2.5} 
-                  fillOpacity={1} 
-                  fill="url(#tempGradient)" 
-                />
-                <Area 
-                  type="monotone" 
-                  dataKey="humidity" 
-                  name="Humidity (%RH)" 
-                  stroke="#06b6d4" 
-                  strokeWidth={2} 
-                  fillOpacity={1} 
-                  fill="url(#humidityGradient)" 
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          ) : (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#64748b' }}>
-              Awaiting telemetry socket packets...
-            </div>
-          )}
-        </div>
-      </div>
+      {/* Real-Time Telemetry Monitoring Section */}
+      <RealtimeTelemetryMonitor defaultBufferLimit={30} showDeviceSelector={true} />
 
       {/* Split Row: Hardware Devices & Recent Alerts */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>

@@ -13,14 +13,30 @@ export const initSocket = (server, corsOrigin) => {
   ioInstance.on('connection', (socket) => {
     console.log(`[Socket.IO] Client connected: ${socket.id}`);
 
-    socket.on('subscribe:device', (deviceId) => {
-      socket.join(`device:${deviceId}`);
-      console.log(`[Socket.IO] Client ${socket.id} joined room device:${deviceId}`);
+    socket.on('subscribe:device', (payload) => {
+      const rawId = typeof payload === 'object' && payload !== null ? payload.deviceId : payload;
+      if (!rawId) return;
+      const deviceId = String(rawId).trim();
+      const upperId = deviceId.toUpperCase();
+      socket.join(`device:${upperId}`);
+      if (deviceId !== upperId) {
+        socket.join(`device:${deviceId}`);
+      }
+      console.log(`[Socket.IO] Client ${socket.id} joined room device:${upperId}`);
+      socket.emit('subscribed:device', { deviceId: upperId, success: true });
     });
 
-    socket.on('unsubscribe:device', (deviceId) => {
-      socket.leave(`device:${deviceId}`);
-      console.log(`[Socket.IO] Client ${socket.id} left room device:${deviceId}`);
+    socket.on('unsubscribe:device', (payload) => {
+      const rawId = typeof payload === 'object' && payload !== null ? payload.deviceId : payload;
+      if (!rawId) return;
+      const deviceId = String(rawId).trim();
+      const upperId = deviceId.toUpperCase();
+      socket.leave(`device:${upperId}`);
+      if (deviceId !== upperId) {
+        socket.leave(`device:${deviceId}`);
+      }
+      console.log(`[Socket.IO] Client ${socket.id} left room device:${upperId}`);
+      socket.emit('unsubscribed:device', { deviceId: upperId, success: true });
     });
 
     socket.on('disconnect', () => {
@@ -41,9 +57,14 @@ export const broadcastTelemetry = (telemetryData) => {
   ioInstance.emit('telemetry:data', telemetryData);
 
   // Broadcast to specific device room if present
-  const deviceId = telemetryData.metadata?.deviceId || telemetryData.deviceId;
-  if (deviceId) {
-    ioInstance.to(`device:${deviceId}`).emit('telemetry:device_data', telemetryData);
+  const rawId = telemetryData.metadata?.deviceId || telemetryData.deviceId;
+  if (rawId) {
+    const deviceId = String(rawId).trim();
+    const upperId = deviceId.toUpperCase();
+    ioInstance.to(`device:${upperId}`).emit('telemetry:device_data', telemetryData);
+    if (deviceId !== upperId) {
+      ioInstance.to(`device:${deviceId}`).emit('telemetry:device_data', telemetryData);
+    }
   }
 };
 

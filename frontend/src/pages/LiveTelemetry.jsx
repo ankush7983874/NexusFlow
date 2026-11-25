@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { api } from '../services/api';
+import { RealtimeTelemetryMonitor } from '../components/telemetry/RealtimeTelemetryMonitor';
 
 export const LiveTelemetry = () => {
   const { 
@@ -294,6 +295,9 @@ export const LiveTelemetry = () => {
           <span className="badge badge-success">● Socket.IO Active</span>
         </div>
       </div>
+
+      {/* Real-Time Telemetry Monitor */}
+      <RealtimeTelemetryMonitor initialDeviceId={selectedDevice} showDeviceSelector={false} />
 
       {/* Telemetry Stream Table */}
       <div className="data-table-container">

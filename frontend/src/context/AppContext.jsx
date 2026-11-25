@@ -20,6 +20,7 @@ export const AppProvider = ({ children }) => {
   const [activeNodeEvents, setActiveNodeEvents] = useState({});
   const [simulatorRunning, setSimulatorRunning] = useState(true);
   const [toasts, setToasts] = useState([]);
+  const [socketStatus, setSocketStatus] = useState(socket.connected ? 'connected' : 'disconnected');
 
   const showToast = (message, type = 'info') => {
     const id = Date.now() + Math.random();
@@ -77,12 +78,22 @@ export const AppProvider = ({ children }) => {
       refreshStats();
     };
 
+    const onConnect = () => setSocketStatus('connected');
+    const onDisconnect = () => setSocketStatus('disconnected');
+    const onConnectError = () => setSocketStatus('error');
+
+    socket.on('connect', onConnect);
+    socket.on('disconnect', onDisconnect);
+    socket.on('connect_error', onConnectError);
     socket.on('telemetry:data', handleTelemetry);
     socket.on('alert:trigger', handleAlert);
     socket.on('rule:node_executed', handleNodeExecuted);
     socket.on('device:update', handleDeviceUpdate);
 
     return () => {
+      socket.off('connect', onConnect);
+      socket.off('disconnect', onDisconnect);
+      socket.off('connect_error', onConnectError);
       socket.off('telemetry:data', handleTelemetry);
       socket.off('alert:trigger', handleAlert);
       socket.off('rule:node_executed', handleNodeExecuted);
@@ -141,6 +152,7 @@ export const AppProvider = ({ children }) => {
         liveTelemetryFeed,
         liveAlerts,
         activeNodeEvents,
+        socketStatus,
         simulatorRunning,
         toggleSimulator,
         triggerOverheatSpike,
