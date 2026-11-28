@@ -43,6 +43,8 @@ export const api = {
   getRules: () => request('/rules'),
   getRuleById: (id) => request(`/rules/${id}`),
   createRule: (data) => request('/rules', { method: 'POST', body: JSON.stringify(data) }),
+  createThresholdRule: (data) => request('/rules/threshold', { method: 'POST', body: JSON.stringify(data) }),
+  updateThresholdRule: (id, data) => request(`/rules/${id}/threshold`, { method: 'PUT', body: JSON.stringify(data) }),
   updateRule: (id, data) => request(`/rules/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteRule: (id) => request(`/rules/${id}`, { method: 'DELETE' }),
   toggleRule: (id) => request(`/rules/${id}/toggle`, { method: 'PATCH' }),
@@ -67,8 +69,10 @@ export const api = {
     const query = new URLSearchParams(params).toString();
     return request(`/alerts?${query}`);
   },
+  getAlertById: (id) => request(`/alerts/${id}`),
   getAlertStats: () => request('/alerts/stats'),
   acknowledgeAlert: (id) => request(`/alerts/${id}/acknowledge`, { method: 'PATCH' }),
+  resolveAlert: (id) => request(`/alerts/${id}/resolve`, { method: 'PATCH' }),
   clearAlerts: () => request('/alerts', { method: 'DELETE' }),
 
   // Simulator

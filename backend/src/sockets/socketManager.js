@@ -73,6 +73,11 @@ export const broadcastAlert = (alertData) => {
   ioInstance.emit('alert:trigger', alertData);
 };
 
+export const broadcastAlertUpdate = (alertData) => {
+  if (!ioInstance) return;
+  ioInstance.emit('alert:update', alertData);
+};
+
 export const broadcastNodeExecution = (eventData) => {
   if (!ioInstance) return;
   ioInstance.emit('rule:node_executed', eventData);

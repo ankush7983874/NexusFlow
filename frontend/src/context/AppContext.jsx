@@ -63,6 +63,11 @@ export const AppProvider = ({ children }) => {
       refreshStats();
     };
 
+    const handleAlertUpdate = (updatedAlert) => {
+      setLiveAlerts(prev => prev.map(a => (a._id === updatedAlert._id ? updatedAlert : a)));
+      refreshStats();
+    };
+
     const handleNodeExecuted = (event) => {
       setActiveNodeEvents(prev => ({
         ...prev,
@@ -87,6 +92,7 @@ export const AppProvider = ({ children }) => {
     socket.on('connect_error', onConnectError);
     socket.on('telemetry:data', handleTelemetry);
     socket.on('alert:trigger', handleAlert);
+    socket.on('alert:update', handleAlertUpdate);
     socket.on('rule:node_executed', handleNodeExecuted);
     socket.on('device:update', handleDeviceUpdate);
 
@@ -96,6 +102,7 @@ export const AppProvider = ({ children }) => {
       socket.off('connect_error', onConnectError);
       socket.off('telemetry:data', handleTelemetry);
       socket.off('alert:trigger', handleAlert);
+      socket.off('alert:update', handleAlertUpdate);
       socket.off('rule:node_executed', handleNodeExecuted);
       socket.off('device:update', handleDeviceUpdate);
     };

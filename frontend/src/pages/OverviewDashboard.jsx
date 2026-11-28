@@ -12,7 +12,12 @@ import {
   WifiOff,
   Search,
   X,
-  ChevronRight
+  ChevronRight,
+  AlertTriangle,
+  ShieldAlert,
+  CheckCircle,
+  ExternalLink,
+  Check
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { api } from '../services/api';
@@ -30,7 +35,14 @@ export const OverviewDashboard = () => {
   const { stats, liveTelemetryFeed, liveAlerts, setActiveTab, openRuleInBuilder, openDeviceDetails, showToast, refreshStats } = useApp();
   const [deviceList, setDeviceList] = useState(defaultDeviceList);
   const [deviceSearch, setDeviceSearch] = useState('');
-  const [totalAlertsCount, setTotalAlertsCount] = useState(0);
+  const [alertStats, setAlertStats] = useState({
+    active: 0,
+    critical: 0,
+    warning: 0,
+    resolved: 0,
+    acknowledged: 0,
+    total: 0
+  });
 
   useEffect(() => {
     let isMounted = true;
@@ -46,18 +58,21 @@ export const OverviewDashboard = () => {
     return () => { isMounted = false; };
   }, [stats]);
 
-  // Fetch alert stats for dynamic total alert count
+  // Fetch alert stats for dynamic alert counts
   useEffect(() => {
     let isMounted = true;
-    api.getAlertStats()
-      .then(res => {
-        if (isMounted && res && res.success && res.data) {
-          setTotalAlertsCount(res.data.total ?? 0);
-        }
-      })
-      .catch(() => {
-        // Fallback to recent alerts length
-      });
+    const fetchAlertStats = () => {
+      api.getAlertStats()
+        .then(res => {
+          if (isMounted && res && res.success && res.data) {
+            setAlertStats(res.data);
+          }
+        })
+        .catch(() => {
+          // Fallback gracefully
+        });
+    };
+    fetchAlertStats();
     return () => { isMounted = false; };
   }, [liveAlerts, stats]);
 
@@ -67,7 +82,6 @@ export const OverviewDashboard = () => {
   const offlineDevices = deviceList.filter(d => d.status !== 'online').length;
 
   const displayAlerts = liveAlerts.length > 0 ? liveAlerts : stats.recentAlerts || [];
-  const totalAlerts = stats.totalAlerts ?? (totalAlertsCount || displayAlerts.length);
 
   // Filter dashboard devices by name or deviceId
   const filteredDashboardDevices = deviceList.filter(d => {
@@ -84,6 +98,18 @@ export const OverviewDashboard = () => {
       await api.acknowledgeAlert(alertId);
       showToast('Alert marked as acknowledged', 'success');
       refreshStats();
+      api.getAlertStats().then(res => res?.data && setAlertStats(res.data)).catch(() => {});
+    } catch (err) {
+      showToast(`Error: ${err.message}`, 'danger');
+    }
+  };
+
+  const handleResolve = async (alertId) => {
+    try {
+      await api.resolveAlert(alertId);
+      showToast('Alert marked as resolved', 'success');
+      refreshStats();
+      api.getAlertStats().then(res => res?.data && setAlertStats(res.data)).catch(() => {});
     } catch (err) {
       showToast(`Error: ${err.message}`, 'danger');
     }
@@ -126,8 +152,8 @@ export const OverviewDashboard = () => {
         </button>
       </div>
 
-      {/* 4 Dashboard Summary Cards */}
-      <div className="metrics-grid">
+      {/* Fleet Overview Summary Cards */}
+      <div className="metrics-grid" style={{ marginBottom: 20 }}>
         <div className="metric-card">
           <div>
             <div className="metric-label">Total Devices</div>
@@ -170,10 +196,12 @@ export const OverviewDashboard = () => {
 
         <div className="metric-card">
           <div>
-            <div className="metric-label">Total Alerts</div>
-            <div className="metric-value" style={{ color: totalAlerts > 0 ? '#dc2626' : '#0f172a' }}>{totalAlerts}</div>
-            <div style={{ fontSize: 12, color: totalAlerts > 0 ? '#dc2626' : '#64748b', marginTop: 4 }}>
-              Dispatched & logged events
+            <div className="metric-label">Active Alerts</div>
+            <div className="metric-value" style={{ color: alertStats.active > 0 ? '#dc2626' : '#0f172a' }}>
+              {alertStats.active}
+            </div>
+            <div style={{ fontSize: 12, color: alertStats.active > 0 ? '#dc2626' : '#64748b', marginTop: 4 }}>
+              {alertStats.active > 0 ? `${alertStats.critical} critical, ${alertStats.warning} warning` : 'All nominal'}
             </div>
           </div>
           <div className="metric-icon-box" style={{ background: '#fee2e2', color: '#b91c1c' }}>
@@ -182,11 +210,90 @@ export const OverviewDashboard = () => {
         </div>
       </div>
 
+      {/* Module 5: Alert Summary Cards */}
+      <div style={{ marginBottom: 24 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <ShieldAlert size={18} color="#4f46e5" />
+            Alert & Threshold Insights
+          </div>
+          <button 
+            className="btn btn-secondary btn-sm" 
+            onClick={() => setActiveTab('alerts')}
+            style={{ fontSize: 12, padding: '4px 10px', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+          >
+            Manage Alerts
+            <ArrowRight size={13} />
+          </button>
+        </div>
+        <div className="metrics-grid">
+          <div className="metric-card" style={{ borderLeft: '4px solid #ef4444' }}>
+            <div>
+              <div className="metric-label">Total Active Alerts</div>
+              <div className="metric-value" style={{ color: alertStats.active > 0 ? '#ef4444' : '#0f172a' }}>
+                {alertStats.active}
+              </div>
+              <div style={{ fontSize: 12, color: alertStats.active > 0 ? '#ef4444' : '#64748b', marginTop: 4 }}>
+                {alertStats.active > 0 ? 'Requires acknowledgment or fix' : 'Nominal operation'}
+              </div>
+            </div>
+            <div className="metric-icon-box" style={{ background: '#fee2e2', color: '#ef4444' }}>
+              <BellRing size={22} />
+            </div>
+          </div>
+
+          <div className="metric-card" style={{ borderLeft: '4px solid #dc2626' }}>
+            <div>
+              <div className="metric-label">Critical Alerts</div>
+              <div className="metric-value" style={{ color: alertStats.critical > 0 ? '#dc2626' : '#0f172a' }}>
+                {alertStats.critical}
+              </div>
+              <div style={{ fontSize: 12, color: alertStats.critical > 0 ? '#dc2626' : '#64748b', marginTop: 4 }}>
+                Critical threshold breaches
+              </div>
+            </div>
+            <div className="metric-icon-box" style={{ background: '#fef2f2', color: '#dc2626' }}>
+              <AlertTriangle size={22} />
+            </div>
+          </div>
+
+          <div className="metric-card" style={{ borderLeft: '4px solid #f59e0b' }}>
+            <div>
+              <div className="metric-label">Warning Alerts</div>
+              <div className="metric-value" style={{ color: alertStats.warning > 0 ? '#d97706' : '#0f172a' }}>
+                {alertStats.warning}
+              </div>
+              <div style={{ fontSize: 12, color: alertStats.warning > 0 ? '#d97706' : '#64748b', marginTop: 4 }}>
+                Elevated sensor warnings
+              </div>
+            </div>
+            <div className="metric-icon-box" style={{ background: '#fef3c7', color: '#d97706' }}>
+              <ShieldAlert size={22} />
+            </div>
+          </div>
+
+          <div className="metric-card" style={{ borderLeft: '4px solid #10b981' }}>
+            <div>
+              <div className="metric-label">Resolved Alerts</div>
+              <div className="metric-value" style={{ color: '#059669' }}>
+                {alertStats.resolved}
+              </div>
+              <div style={{ fontSize: 12, color: '#059669', marginTop: 4 }}>
+                Mitigated & normalized
+              </div>
+            </div>
+            <div className="metric-icon-box" style={{ background: '#ecfdf5', color: '#059669' }}>
+              <CheckCircle size={22} />
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Real-Time Telemetry Monitoring Section */}
       <RealtimeTelemetryMonitor defaultBufferLimit={30} showDeviceSelector={true} />
 
       {/* Split Row: Hardware Devices & Recent Alerts */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginTop: 24 }}>
         {/* Device Status Section */}
         <div className="card">
           <div className="card-header">
@@ -253,7 +360,7 @@ export const OverviewDashboard = () => {
           </div>
 
           {/* Device Cards List */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxHeight: 280, overflowY: 'auto' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxHeight: 320, overflowY: 'auto' }}>
             {filteredDashboardDevices.length > 0 ? (
               filteredDashboardDevices.map(dev => {
                 const isOnline = dev.status === 'online';
@@ -342,60 +449,143 @@ export const OverviewDashboard = () => {
         {/* Recent Triggered Alerts */}
         <div className="card">
           <div className="card-header">
-            <h3 className="card-title">Recent Rule Engine Alerts</h3>
+            <div>
+              <h3 className="card-title">Recent Alerts</h3>
+              <p style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
+                Real-time active and recent threshold violations
+              </p>
+            </div>
             <button className="btn btn-secondary btn-sm" onClick={() => setActiveTab('alerts')}>
-              View History
+              View All Alerts
             </button>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxHeight: 330, overflowY: 'auto' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxHeight: 320, overflowY: 'auto' }}>
             {displayAlerts.length > 0 ? (
-              displayAlerts.slice(0, 5).map((alert, idx) => (
-                <div
-                  key={alert._id || idx}
-                  style={{
-                    padding: '12px 14px',
-                    borderRadius: 10,
-                    border: '1px solid #fed7aa',
-                    background: '#fffaf5',
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    justifyContent: 'space-between',
-                    gap: 12
-                  }}
-                >
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span className="badge badge-warning" style={{ fontSize: 10 }}>
-                        {alert.severity || 'warning'}
-                      </span>
-                      <strong style={{ fontSize: 12, color: '#0f172a' }}>{alert.ruleName}</strong>
+              displayAlerts.slice(0, 6).map((alert, idx) => {
+                const isCritical = alert.severity === 'critical';
+                const status = alert.status || (alert.acknowledged ? 'acknowledged' : 'active');
+                const isResolved = status === 'resolved';
+                const isAcknowledged = status === 'acknowledged';
+
+                return (
+                  <div
+                    key={alert._id || idx}
+                    style={{
+                      padding: '12px 14px',
+                      borderRadius: 10,
+                      border: `1px solid ${isCritical ? '#fecaca' : isResolved ? '#bbf7d0' : '#fed7aa'}`,
+                      background: isCritical ? '#fff8f8' : isResolved ? '#f0fdf4' : '#fffaf5',
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      justifyContent: 'space-between',
+                      gap: 12
+                    }}
+                  >
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                        <span 
+                          style={{
+                            fontSize: 10,
+                            fontWeight: 700,
+                            textTransform: 'uppercase',
+                            padding: '2px 7px',
+                            borderRadius: 4,
+                            background: isCritical ? '#dc2626' : '#d97706',
+                            color: '#ffffff'
+                          }}
+                        >
+                          {alert.severity || 'warning'}
+                        </span>
+                        
+                        <span 
+                          style={{
+                            fontSize: 10,
+                            fontWeight: 600,
+                            padding: '2px 7px',
+                            borderRadius: 4,
+                            background: isResolved ? '#dcfce7' : isAcknowledged ? '#e0e7ff' : '#fee2e2',
+                            color: isResolved ? '#15803d' : isAcknowledged ? '#4338ca' : '#b91c1c'
+                          }}
+                        >
+                          {status}
+                        </span>
+
+                        <strong style={{ fontSize: 13, color: '#0f172a' }}>
+                          {alert.title || alert.ruleName || 'Threshold Alert'}
+                        </strong>
+                      </div>
+
+                      {/* Device identifier & Metric info */}
+                      <div style={{ fontSize: 12, color: '#475569', marginTop: 4, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                        {alert.deviceId && (
+                          <span 
+                            onClick={() => openDeviceDetails(alert.deviceId)}
+                            style={{ 
+                              cursor: 'pointer', 
+                              color: '#4f46e5', 
+                              fontWeight: 600,
+                              textDecoration: 'underline'
+                            }}
+                            title="View device details"
+                          >
+                            {alert.deviceName || alert.deviceId}
+                          </span>
+                        )}
+                        {alert.metric && alert.reading !== undefined && (
+                          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, background: '#f1f5f9', padding: '1px 6px', borderRadius: 4 }}>
+                            {alert.metric}: <strong>{alert.reading}</strong>
+                            {alert.threshold !== undefined && ` (limit: ${alert.threshold})`}
+                          </span>
+                        )}
+                      </div>
+
+                      {alert.message && (
+                        <div style={{ fontSize: 12, color: '#334155', marginTop: 4 }}>
+                          {alert.message}
+                        </div>
+                      )}
+
+                      <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <Clock size={12} />
+                        {alert.createdAt ? new Date(alert.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : 'Just now'}
+                      </div>
                     </div>
-                    <div style={{ fontSize: 12, color: '#334155', marginTop: 4 }}>
-                      {alert.message}
-                    </div>
-                    <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <Clock size={12} />
-                      {alert.createdAt ? new Date(alert.createdAt).toLocaleTimeString() : 'Just now'}
-                      {alert.deliveryStatus?.sms?.sent && ' • 📱 Mock SMS Dispatched'}
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0 }}>
+                      {!isResolved && !isAcknowledged && (
+                        <button
+                          className="btn btn-secondary btn-sm"
+                          onClick={() => handleAcknowledge(alert._id)}
+                          style={{ fontSize: 11, padding: '4px 8px', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                          title="Acknowledge alert"
+                        >
+                          <CheckCircle2 size={12} />
+                          Ack
+                        </button>
+                      )}
+                      {!isResolved && (
+                        <button
+                          className="btn btn-secondary btn-sm"
+                          onClick={() => handleResolve(alert._id)}
+                          style={{ fontSize: 11, padding: '4px 8px', color: '#15803d', borderColor: '#bbf7d0', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                          title="Resolve alert"
+                        >
+                          <Check size={12} />
+                          Resolve
+                        </button>
+                      )}
                     </div>
                   </div>
-
-                  {!alert.acknowledged && (
-                    <button
-                      className="btn btn-secondary btn-sm"
-                      onClick={() => handleAcknowledge(alert._id)}
-                      style={{ fontSize: 11, padding: '4px 8px' }}
-                    >
-                      <CheckCircle2 size={12} />
-                      Ack
-                    </button>
-                  )}
-                </div>
-              ))
+                );
+              })
             ) : (
-              <div style={{ textAlign: 'center', padding: '30px 0', color: '#64748b', fontSize: 13 }}>
-                No active alerts. All hardware within nominal parameters.
+              <div style={{ textAlign: 'center', padding: '36px 0', color: '#64748b', fontSize: 13 }}>
+                <CheckCircle size={28} color="#10b981" style={{ marginBottom: 8 }} />
+                <div style={{ fontWeight: 600, color: '#0f172a' }}>All Parameters Nominal</div>
+                <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
+                  No active alerts. Hardware sensors are operating within defined safety thresholds.
+                </div>
               </div>
             )}
           </div>

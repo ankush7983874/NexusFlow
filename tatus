@@ -1,0 +1,13 @@
+warning: in the working copy of 'backend/src/controllers/alert.controller.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'backend/src/controllers/rule.controller.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'backend/src/models/alert.model.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'backend/src/models/rule.model.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'backend/src/routes/alert.routes.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'backend/src/routes/rule.routes.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'backend/src/services/ruleEngine.service.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'backend/src/sockets/socketManager.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'frontend/src/context/AppContext.jsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'frontend/src/pages/AlertsManagement.jsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'frontend/src/pages/OverviewDashboard.jsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'frontend/src/pages/RulesManagement.jsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'frontend/src/services/api.js', LF will be replaced by CRLF the next time Git touches it
